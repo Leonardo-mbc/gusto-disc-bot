@@ -1,5 +1,8 @@
 const dayjs = require('dayjs');
 const CHANNELS = require('../constants/channels');
+dayjs.extend(require('dayjs/plugin/timezone'));
+dayjs.extend(require('dayjs/plugin/utc'));
+dayjs.tz.setDefault('Asia/Tokyo');
 
 module.exports = {
   kickFromVoice(list) {
@@ -12,12 +15,19 @@ module.exports = {
     );
   },
 
-  by90mins(callback) {
-    const now = dayjs();
-    const endTime = now.add(90, 'minutes');
+  by90mins(callback, aboutCallback) {
+    const minutes = 90;
+    const now = dayjs.tz();
+    const endTime = now.add(minutes, 'minutes');
     const waitTime = endTime.diff(now).valueOf();
 
     setTimeout(callback, waitTime);
+
+    if (aboutCallback) {
+      const endTime = now.add(minutes - (Math.random() * 7 + 3), 'minutes');
+      const waitTime = endTime.diff(now).valueOf();
+      setTimeout(aboutCallback, waitTime);
+    }
 
     return { endTime };
   },

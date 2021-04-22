@@ -2,7 +2,7 @@ const { Client } = require('discord.js');
 
 const { TOKEN } = require('./constants/secrets');
 const { START_NISYU_ICHI, PING } = require('./constants/reactive-words');
-const { KICK_FROM_VOICE, PONG } = require('./constants/response-words');
+const { KICK_FROM_VOICE, JUST_STARTED, PONG, ABOUNT_TIME } = require('./constants/response-words');
 const USERS = require('./constants/users');
 const GUILD_DETAILS = require('./constants/guild-details');
 
@@ -21,10 +21,18 @@ client.on('message', async (message) => {
     switch (true) {
       case include(START_NISYU_ICHI, message.content): {
         const list = client.guilds.cache.get(GUILD_DETAILS.GUILD_ID);
-        const { endTime } = by90mins(async () => {
-          await kickFromVoice(list);
-        });
-        await message.channel.send(`${endTime.format('HH時 mm分')} ${choice(KICK_FROM_VOICE)}`);
+        const { endTime } = by90mins(
+          async () => {
+            await kickFromVoice(list);
+          },
+          async () => {
+            await message.channel.send(choice(ABOUNT_TIME));
+          }
+        );
+
+        // await message.channel.send(`${endTime.format('HH時 mm分')} ${choice(KICK_FROM_VOICE)}`);
+        await message.channel.send(choice(JUST_STARTED));
+
         break;
       }
       case include(PING, message.content): {
