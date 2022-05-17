@@ -15,20 +15,25 @@ module.exports = {
     );
   },
 
-  by90mins(callback, aboutCallback) {
-    const minutes = 90;
+  byNmins(minutes, callback, aboutCallback, isPunctual = false) {
     const now = dayjs.tz();
-    const endTime = now.add(minutes, 'minutes');
+    const chunkMinutes = isPunctual ? 0 : Math.random() * 10;
+    const endTime = now.add(minutes + chunkMinutes, 'minutes');
     const waitTime = endTime.diff(now).valueOf();
 
-    setTimeout(callback, waitTime);
+    const endTimerId = setTimeout(callback, waitTime);
+    let aboutTimerId;
 
     if (aboutCallback) {
       const endTime = now.add(minutes - (Math.random() * 7 + 3), 'minutes');
       const waitTime = endTime.diff(now).valueOf();
-      setTimeout(aboutCallback, waitTime);
+      aboutTimerId = setTimeout(aboutCallback, waitTime);
     }
 
-    return { endTime };
+    return { endTime, endTimerId, aboutTimerId };
+  },
+
+  by90mins(callback, aboutCallback) {
+    return byNmins(90, callback, aboutCallback);
   },
 };
