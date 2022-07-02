@@ -10,8 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "dayjs": "^1.10.4",
-    "discord.js": "^12.5.1",
-    "pm2": "^4.5.5"
+    "dayjs": "^1.11.3",
+    "discord.js": "^13.8.1",
+    "guild.js": "^1.0.2",
+    "pm2": "^5.2.0"
   }
 }

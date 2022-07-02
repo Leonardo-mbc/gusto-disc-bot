@@ -1,10 +1,11 @@
-const { Client } = require('discord.js');
+const { Client, Intents } = require('discord.js');
 const dayjs = require('dayjs');
 
 const { TOKEN } = require('./constants/secrets');
 const {
   START_NISYU_ICHI,
   PING,
+  CHECK_TIME,
   ADJUSTMENT_MINUTES_WORDS,
   RESTART_NISYU_ICHI,
   ADJUSTMENT_RESTART_WORDS,
@@ -12,9 +13,12 @@ const {
 const {
   STARTED,
   JUST_STARTED,
+  KICK_FROM_VOICE,
   PONG,
   ABOUT_TIME,
   ADD_MINUTES,
+  NOT_STARTED,
+  CANT_ANSWER,
 } = require('./constants/response-words');
 const USERS = require('./constants/users');
 const GUILD_DETAILS = require('./constants/guild-details');
@@ -25,18 +29,26 @@ const { include } = require('./utilities/include');
 const { stripMention } = require('./utilities/strip-mention');
 const { toHankaku } = require('./utilities/to-hankaku');
 
-const client = new Client();
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_VOICE_STATES,
+  ],
+});
 
 let temporary_adjustment_minutes = 0;
 let temporary_current_end_time;
 let temporary_current_end_timer_id;
 let temporary_current_about_timer_id;
+let temporary_current_is_punctual;
 
 client.on('ready', async () => {
   console.log(`${client.user.tag} でログイン`);
 });
 
-client.on('message', async (message) => {
+client.on('messageCreate', async (message) => {
   if (!message.author.bot && message.mentions.users.get(USERS.GUSTO_BOT)) {
     switch (true) {
       case include(START_NISYU_ICHI, message.content): {
@@ -44,7 +56,7 @@ client.on('message', async (message) => {
         temporary_current_end_time = endTime;
         temporary_current_end_timer_id = endTimerId;
         temporary_current_about_timer_id = aboutTimerId;
-        // await message.channel.send(`${endTime.format('HH時 mm分')} ${choice(KICK_FROM_VOICE)}`);
+        temporary_current_is_punctual = false;
         await message.channel.send(choice(JUST_STARTED));
         break;
       }
@@ -64,17 +76,22 @@ client.on('message', async (message) => {
         }).includes(true);
       }): {
         if (temporary_adjustment_minutes) {
+          const isPunctual = true;
           const minutes = toHankaku(temporary_adjustment_minutes);
           await message.channel.send(choice(STARTED, `${minutes}分設定で`));
           const { endTime, endTimerId, aboutTimerId } = await startNishuIchiBy(
             minutes,
             message,
-            true
+            isPunctual
           );
+
           temporary_adjustment_minutes = '';
           temporary_current_end_time = endTime;
           temporary_current_end_timer_id = endTimerId;
           temporary_current_about_timer_id = aboutTimerId;
+          temporary_current_is_punctual = isPunctual;
+
+          await message.channel.send(`${endTime.format('H時mm分')} ${choice(KICK_FROM_VOICE)}`);
         }
         break;
       }
@@ -93,7 +110,7 @@ client.on('message', async (message) => {
           }
         }).includes(true);
       }): {
-        if (temporary_adjustment_minutes) {
+        if (temporary_adjustment_minutes && temporary_current_end_time) {
           const minutes = toHankaku(temporary_adjustment_minutes);
           await message.channel.send(choice(ADD_MINUTES, minutes));
 
@@ -102,6 +119,26 @@ client.on('message', async (message) => {
           temporary_current_end_time = endTime;
           temporary_current_end_timer_id = endTimerId;
           temporary_current_about_timer_id = aboutTimerId;
+          // temporary_current_is_punctual は変更しない
+        }
+        break;
+      }
+
+      case include(CHECK_TIME, message.content): {
+        if (temporary_current_end_time) {
+          if (!temporary_current_is_punctual) {
+            await message.channel.send(choice(CANT_ANSWER));
+          } else {
+            const now = dayjs.tz();
+            const minutes = temporary_current_end_time.diff(now) / 1000 / 60;
+            if (minutes < 1) {
+              await message.channel.send('もう終わるよ');
+            } else {
+              await message.channel.send(`あと${Math.floor(minutes)}分`);
+            }
+          }
+        } else {
+          await message.channel.send(choice(NOT_STARTED));
         }
         break;
       }
@@ -117,11 +154,11 @@ client.on('message', async (message) => {
 client.login(TOKEN);
 
 async function startNishuIchiBy(minutes, message, isPunctual) {
-  const list = client.guilds.cache.get(GUILD_DETAILS.GUILD_ID);
   const { endTime, endTimerId, aboutTimerId } = byNmins(
     minutes,
     async () => {
-      await kickFromVoice(list);
+      const guilds = client.guilds.cache.get(GUILD_DETAILS.GUILD_ID);
+      await kickFromVoice(guilds);
     },
     async () => {
       await message.channel.send(choice(ABOUT_TIME));
@@ -139,11 +176,11 @@ async function restartNishuIchiBy(minutes, message) {
   const now = dayjs.tz();
   const newMinutes = temporary_current_end_time.add(minutes, 'minutes').diff(now) / 1000 / 60;
 
-  const list = client.guilds.cache.get(GUILD_DETAILS.GUILD_ID);
   const { endTime, endTimerId, aboutTimerId } = byNmins(
     newMinutes,
     async () => {
-      await kickFromVoice(list);
+      const guilds = client.guilds.cache.get(GUILD_DETAILS.GUILD_ID);
+      await kickFromVoice(guilds);
     },
     async () => {
       await message.channel.send(choice(ABOUT_TIME));

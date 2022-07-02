@@ -5,14 +5,21 @@ dayjs.extend(require('dayjs/plugin/utc'));
 dayjs.tz.setDefault('Asia/Tokyo');
 
 module.exports = {
-  kickFromVoice(list) {
-    return Promise.all(
-      list.members.cache
-        .filter((member) => member.voice.channel?.id === CHANNELS.VOICE)
-        .map(async (member) => {
-          return member.voice.setChannel(null);
-        })
-    );
+  async kickFromVoice(guilds) {
+    console.log('切断開始');
+    try {
+      const members = await guilds.members.fetch();
+      return Promise.all(
+        members
+          .filter((member) => member.voice.channelId === CHANNELS.VOICE)
+          .map(async (member) => {
+            console.log('Kick: ', member.user.username, member.voice.channelId);
+            return member.voice.disconnect('終わりの時間になりました');
+          })
+      );
+    } catch (e) {
+      console.log('in kickFromVoice', e);
+    }
   },
 
   byNmins(minutes, callback, aboutCallback, isPunctual = false) {
