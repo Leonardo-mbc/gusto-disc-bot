@@ -32,9 +32,11 @@ module.exports = {
     let aboutTimerId;
 
     if (aboutCallback) {
-      const endTime = now.add(minutes - (Math.random() * 7 + 3), 'minutes');
-      const waitTime = endTime.diff(now).valueOf();
-      aboutTimerId = setTimeout(aboutCallback, waitTime);
+      const superEarly = Math.random() < 0.3;
+      const losstime = Math.random() * (superEarly ? 10 : 7) + (superEarly ? 20 : 3);
+      const aboutEndTime = endTime.subtract(losstime, 'minutes');
+      const aboutWaitTime = aboutEndTime.diff(now).valueOf();
+      aboutTimerId = setTimeout(aboutCallback, aboutWaitTime);
     }
 
     return { endTime, endTimerId, aboutTimerId };
