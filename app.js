@@ -50,18 +50,18 @@ let temporary_current_is_punctual;
 
 client.on('ready', async () => {
   console.log(`${client.user.tag} でログイン`);
-  
+
   const channel = await client.channels.fetch(GENERAL);
-  cron.schedule('30 12 * * 5', () => {
-    if ( dayjs().week() % 2 === 0 ) {
+  cron.schedule('0 30 12 * * 5', () => {
+    if (dayjs().week() % 2 === 0) {
       channel.send('リマインダー : 【本日開催】話題スレはこちら👇');
     }
-  })
-  cron.schedule('50 18 * * 5', () => {
-    if ( dayjs().week() % 2 === 0 ) {
+  });
+  cron.schedule('0 50 18 * * 5', () => {
+    if (dayjs().week() % 2 === 0) {
       channel.send('リマインダー : 【10分前】もうすぐスタートです！準備はいいかな？🤟');
     }
-  })
+  });
 });
 
 client.on('messageCreate', async (message) => {
@@ -91,26 +91,26 @@ client.on('messageCreate', async (message) => {
           }
         }).includes(true);
       }): {
-          if (temporary_adjustment_minutes) {
-            const isPunctual = true;
-            const minutes = toHankaku(temporary_adjustment_minutes);
-            await message.channel.send(choice(STARTED, `${minutes}分設定で`));
-            const { endTime, endTimerId, aboutTimerId } = await startNishuIchiBy(
-              minutes,
-              message,
-              isPunctual
-            );
+        if (temporary_adjustment_minutes) {
+          const isPunctual = true;
+          const minutes = toHankaku(temporary_adjustment_minutes);
+          await message.channel.send(choice(STARTED, `${minutes}分設定で`));
+          const { endTime, endTimerId, aboutTimerId } = await startNishuIchiBy(
+            minutes,
+            message,
+            isPunctual
+          );
 
-            temporary_adjustment_minutes = '';
-            temporary_current_end_time = endTime;
-            temporary_current_end_timer_id = endTimerId;
-            temporary_current_about_timer_id = aboutTimerId;
-            temporary_current_is_punctual = isPunctual;
+          temporary_adjustment_minutes = '';
+          temporary_current_end_time = endTime;
+          temporary_current_end_timer_id = endTimerId;
+          temporary_current_about_timer_id = aboutTimerId;
+          temporary_current_is_punctual = isPunctual;
 
-            await message.channel.send(`${endTime.format('H時mm分')} ${choice(KICK_FROM_VOICE)}`);
-          }
-          break;
+          await message.channel.send(`${endTime.format('H時mm分')} ${choice(KICK_FROM_VOICE)}`);
         }
+        break;
+      }
 
       case RESTART_NISYU_ICHI.some((triggerWord) => {
         return ADJUSTMENT_RESTART_WORDS.map((connector) => {
@@ -126,19 +126,19 @@ client.on('messageCreate', async (message) => {
           }
         }).includes(true);
       }): {
-          if (temporary_adjustment_minutes && temporary_current_end_time) {
-            const minutes = toHankaku(temporary_adjustment_minutes);
-            await message.channel.send(choice(ADD_MINUTES, minutes));
+        if (temporary_adjustment_minutes && temporary_current_end_time) {
+          const minutes = toHankaku(temporary_adjustment_minutes);
+          await message.channel.send(choice(ADD_MINUTES, minutes));
 
-            const { endTime, endTimerId, aboutTimerId } = await restartNishuIchiBy(minutes, message);
-            temporary_adjustment_minutes = '';
-            temporary_current_end_time = endTime;
-            temporary_current_end_timer_id = endTimerId;
-            temporary_current_about_timer_id = aboutTimerId;
-            // temporary_current_is_punctual は変更しない
-          }
-          break;
+          const { endTime, endTimerId, aboutTimerId } = await restartNishuIchiBy(minutes, message);
+          temporary_adjustment_minutes = '';
+          temporary_current_end_time = endTime;
+          temporary_current_end_timer_id = endTimerId;
+          temporary_current_about_timer_id = aboutTimerId;
+          // temporary_current_is_punctual は変更しない
         }
+        break;
+      }
 
       case include(CHECK_TIME, message.content): {
         if (temporary_current_end_time) {
