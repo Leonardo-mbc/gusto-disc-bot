@@ -53,12 +53,12 @@ client.on('ready', async () => {
 
   const channel = await client.channels.fetch(GENERAL);
   cron.schedule('0 30 12 * * 5', () => {
-    if (dayjs().week() % 2 === 0) {
+    if (dayjs().week() % 2 === 1) {
       channel.send('リマインダー : 【本日開催】話題スレはこちら👇');
     }
   });
   cron.schedule('0 50 18 * * 5', () => {
-    if (dayjs().week() % 2 === 0) {
+    if (dayjs().week() % 2 === 1) {
       channel.send('リマインダー : 【10分前】もうすぐスタートです！準備はいいかな？🤟');
     }
   });
